@@ -1,0 +1,36 @@
+
+name: Update Space Shooter Game
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # Daily at midnight UTC
+  workflow_dispatch:     # Also allows manual trigger
+
+permissions:
+  contents: write        # Required for committing the generated file
+
+jobs:
+  update-game:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: czl9707/gh-space-shooter@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          output-path: 'game.gif'
+          strategy: 'random'
+
+      - name: Ensure assets directory exists
+        run: mkdir -p assets
+
+      - name: Move game.gif to assets/
+        run: mv game.gif assets/game.gif
+
+      - name: Commit and push updated GIF
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add assets/game.gif
+          git commit -m "Update game.gif" || echo "No changes to commit"
+          git push
