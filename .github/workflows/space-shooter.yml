@@ -30,6 +30,11 @@ jobs:
       - name: Move game.gif to assets/
         run: mv game.gif assets/game.gif
 
+      - name: Pull latest changes
+        run: |
+          git config --global pull.rebase false
+          git pull origin main
+
       - name: Commit and push updated GIF
         run: |
           git config --global user.name 'github-actions[bot]'
