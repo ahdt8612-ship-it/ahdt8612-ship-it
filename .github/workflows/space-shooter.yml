@@ -1,24 +1,34 @@
 name: Update Space Shooter Game
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   schedule:
     - cron: '0 0 * * *'   # Daily at midnight UTC
-  workflow_dispatch:     # Also allows manual trigger
+  workflow_dispatch:
 
 permissions:
-  contents: write        # Required for committing the generated file
+  contents: write
+
+concurrency:
+  group: space-shooter-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   update-game:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - uses: czl9707/gh-space-shooter@v1
+      - name: Sync with remote branch
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+
+      - name: Generate GIF
+        uses: czl9707/gh-space-shooter@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           output-path: 'game.gif'
@@ -30,15 +40,12 @@ jobs:
       - name: Move game.gif to assets/
         run: mv game.gif assets/game.gif
 
-      - name: Pull latest changes
-        run: |
-          git config --global pull.rebase false
-          git pull origin main
-
       - name: Commit and push updated GIF
         run: |
+          BRANCH="${GITHUB_REF_NAME}"
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
           git add assets/game.gif
           git commit -m "Update game.gif" || echo "No changes to commit"
-          git push
+          git push origin "HEAD:$BRANCH"
